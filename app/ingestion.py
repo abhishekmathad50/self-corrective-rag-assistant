@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import hashlib
 
@@ -16,10 +15,15 @@ from langchain_chroma import Chroma
 # Configuration
 # -----------------------------
 
-DOCUMENTS_DIR = Path("data/documents")
-CHROMA_DIR = Path("chroma_db")
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+DOCUMENTS_DIR = BASE_DIR / "data" / "documents"
+CHROMA_DIR = BASE_DIR / "chroma_db"
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 150
 
 
 # -----------------------------
@@ -70,7 +74,12 @@ def load_documents():
         show_progress=True,
     )
 
-    documents.extend(markdown_loader.load())
+    markdown_documents = markdown_loader.load()
+    documents.extend(markdown_documents)
+
+    print(
+        f"Loaded Markdown documents: {len(markdown_documents)}"
+    )
 
     # Load PDF files
     for pdf_path in DOCUMENTS_DIR.glob("*.pdf"):
@@ -106,8 +115,8 @@ def split_documents(documents):
     """Split documents into smaller chunks."""
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150,
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
         add_start_index=True,
     )
 
@@ -142,7 +151,8 @@ def generate_chunk_ids(chunks):
         )
 
         unique_content = (
-            f"{source}:{page}:{start_index}:{chunk.page_content}"
+            f"{source}:{page}:{start_index}:"
+            f"{chunk.page_content}"
         )
 
         chunk_id = hashlib.sha256(
@@ -159,7 +169,7 @@ def generate_chunk_ids(chunks):
 # -----------------------------
 
 def create_vector_store(chunks):
-    """Rebuild ChromaDB without accumulating duplicate chunks."""
+    """Rebuild ChromaDB with the latest document chunks."""
 
     if not chunks:
         raise ValueError(
@@ -168,7 +178,8 @@ def create_vector_store(chunks):
 
     embeddings = get_embeddings()
 
-    # Remove the previous collection before rebuilding
+    # Remove the previous collection before rebuilding.
+    # WARNING: This clears all existing indexed documents.
     if CHROMA_DIR.exists():
 
         try:
@@ -216,13 +227,13 @@ def delete_document_from_vector_store(filename):
 
     vector_store = get_vector_store()
 
-    # Match the relative source path stored by document loaders
-    source_path = str(DOCUMENTS_DIR / filename)
+    # Use the same absolute source path as document ingestion
+    source_path = str(
+        (DOCUMENTS_DIR / filename).resolve()
+    )
 
-    collection = vector_store._collection
-
-    # Retrieve matching chunk IDs
-    results = collection.get(
+    # Find matching chunk IDs using the vector-store API
+    results = vector_store.get(
         where={"source": source_path},
         include=[],
     )
@@ -230,14 +241,11 @@ def delete_document_from_vector_store(filename):
     chunk_ids = results.get("ids", [])
 
     if not chunk_ids:
-        print(
-            f"No chunks found for {filename}. "
-            "Document metadata may use a different path format."
-        )
+        print(f"No chunks found for {filename}.")
         return 0
 
-    # Delete only matching document chunks
-    collection.delete(ids=chunk_ids)
+    # Delete matching chunks
+    vector_store.delete(ids=chunk_ids)
 
     print(
         f"Deleted {len(chunk_ids)} chunks "
@@ -262,6 +270,11 @@ def ingest_documents():
         )
 
     chunks = split_documents(documents)
+
+    if not chunks:
+        raise ValueError(
+            "Document loading succeeded, but no chunks were created."
+        )
 
     vector_store = create_vector_store(chunks)
 
