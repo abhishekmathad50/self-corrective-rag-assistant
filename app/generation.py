@@ -106,6 +106,11 @@ STRICT CITATION RULES:
 10. Do not treat previous assistant answers as verified facts.
 11. Answer only the latest question.
 12. Keep the response clear and technically accurate.
+13. Keep answers concise and focused.
+14. For simple questions, answer in 2–4 sentences.
+15. Use bullet points for multi-step technical explanations.
+16. Avoid repeating information.
+17. Include only details necessary to answer the question.
 
 Return only the answer with relevant numbered citations.
 """
