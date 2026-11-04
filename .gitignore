@@ -24,3 +24,7 @@ data/chat_history.db
 
 # Log files
 *.log
+
+# Private keys and certificates
+*.pem
+*.key
