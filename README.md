@@ -21,6 +21,20 @@ It provides a Streamlit interface for document uploads, document-level filtering
 - **FastAPI Backend:** REST APIs for document ingestion, retrieval, and chat management.
 - **Docker Support:** Separate backend and frontend containers orchestrated using Docker Compose.
 
+## 📸 Application Screenshots
+
+### 1. Main Application Interface
+![Main Interface](screenshots/main-interface.png)
+
+### 2. RAG Response with Source Citations
+![RAG Response](screenshots/rag-response.png)
+
+### 3. Uploaded Documents
+![Uploaded Documents](screenshots/uploaded-documents.png)
+
+### 4. Document Selection and Filtering
+![Document Selection](screenshots/document-selection.png)
+
 ## 🏗️ System Architecture
 
 The application follows a conditional self-corrective RAG workflow.
