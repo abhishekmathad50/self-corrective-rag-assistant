@@ -1,3 +1,4 @@
+
 from typing import TypedDict
 
 
@@ -9,3 +10,5 @@ class GraphState(TypedDict):
     answer: str
     retry_count: int
     sources: list
+    selected_documents: list[str]
+    chat_history: list[dict]

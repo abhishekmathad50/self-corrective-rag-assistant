@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.vscode/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+chroma_db/
+data/chat_history.db
+*.log

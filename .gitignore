@@ -1,6 +1,26 @@
+# Python virtual environment
 .venv/
+venv/
+env/
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Python cache files
 __pycache__/
-*.pyc
+*.py[cod]
+
+# Generated vector database
 chroma_db/
+
+# Test and development files
 .pytest_cache/
+.vscode/
+
+# Local database and chat history
+data/chat_history.db
+
+# Log files
+*.log
