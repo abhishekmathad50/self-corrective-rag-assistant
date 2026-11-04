@@ -1,14 +1,15 @@
-
-from typing import TypedDict
+from typing import TypedDict, NotRequired
 
 
 class GraphState(TypedDict):
+    """State definition for the RAG workflow."""
+
     question: str
-    rewritten_query: str
+    rewritten_query: NotRequired[str]
     documents: list
     relevant_documents: list
-    answer: str
+    answer: NotRequired[str]
     retry_count: int
-    sources: list
-    selected_documents: list[str]
-    chat_history: list[dict]
+    sources: NotRequired[list]
+    selected_documents: NotRequired[list[str]]
+    chat_history: NotRequired[list[dict]]
