@@ -1,10 +1,23 @@
+
 from app.graph import GraphState
 from app.llm import get_llm
 
 
 def grade_documents(state: GraphState) -> GraphState:
+    """
+    Evaluate retrieved document chunks for relevance
+    to the user's original question.
+    """
+
     question = state["question"]
     documents = state["documents"]
+
+    # Handle empty retrieval results
+    if not documents:
+        return {
+            **state,
+            "relevant_documents": [],
+        }
 
     llm = get_llm()
     relevant_documents = []
@@ -14,33 +27,56 @@ def grade_documents(state: GraphState) -> GraphState:
         prompt = f"""
 You are a relevance grader for a technical documentation RAG system.
 
-Determine whether the document chunk contains information that could
-help answer the user's question.
+Your task is to determine whether the document chunk contains
+information that can help answer the user's question.
 
-User question:
+USER QUESTION:
 {question}
 
-Document chunk:
+DOCUMENT CHUNK:
 {document.page_content}
 
-If the document is relevant or related to the question, answer YES.
-If it is clearly unrelated, answer NO.
+GRADING INSTRUCTIONS:
+1. Consider technical terminology and related concepts.
+2. Accept documents containing relevant supporting information.
+3. Reject documents that are clearly unrelated.
+4. Do not judge relevance based only on exact keyword matches.
+5. Do not generate an explanation.
 
-Return ONLY one word:
+Return exactly one word:
 YES
 or
 NO
 """
 
-        response = llm.invoke(prompt)
+        try:
+            response = llm.invoke(prompt)
 
-        if isinstance(response.content, list):
-            result = response.content[0]["text"].strip().upper()
-        else:
-            result = response.content.strip().upper()
+            content = response.content
 
-        if result.startswith("YES"):
-            relevant_documents.append(document)
+            if isinstance(content, list):
+                result = " ".join(
+                    item.get("text", "")
+                    for item in content
+                    if isinstance(item, dict)
+                ).strip().upper()
+            else:
+                result = str(content).strip().upper()
+
+            # Accept only a clear YES response
+            if result == "YES":
+                relevant_documents.append(document)
+
+        except Exception as error:
+            print(
+                f"Document grading error: {error}"
+            )
+
+            # Do not accept ungraded documents as relevant
+            continue
+
+    print(f"Documents received for grading: {len(documents)}")
+    print(f"Relevant documents after grading: {len(relevant_documents)}")
 
     return {
         **state,
