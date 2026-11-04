@@ -1,4 +1,3 @@
-
 import sqlite3
 import json
 import uuid
@@ -7,22 +6,41 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 
-# Database configuration
+# -----------------------------
+# Database Configuration
+# -----------------------------
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 DATABASE_DIR = BASE_DIR / "data"
 DATABASE_PATH = DATABASE_DIR / "chat_history.db"
 
+
+# -----------------------------
+# Database Connection
+# -----------------------------
 
 def get_connection():
     """Create a SQLite database connection."""
 
     DATABASE_DIR.mkdir(parents=True, exist_ok=True)
 
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = sqlite3.connect(
+        DATABASE_PATH,
+        timeout=30,
+    )
+
     connection.row_factory = sqlite3.Row
+
+    # Enable foreign key enforcement
+    connection.execute("PRAGMA foreign_keys = ON")
 
     return connection
 
+
+# -----------------------------
+# Initialize Database
+# -----------------------------
 
 def initialize_database():
     """Create chat session and message tables."""
@@ -56,11 +74,18 @@ def initialize_database():
         connection.commit()
 
 
+# -----------------------------
+# Create Chat Session
+# -----------------------------
+
 def create_chat_session(title="New Chat"):
     """Create a new chat session."""
 
     session_id = str(uuid.uuid4())
-    current_time = datetime.now(timezone.utc).isoformat()
+
+    current_time = datetime.now(
+        timezone.utc
+    ).isoformat()
 
     with get_connection() as connection:
 
@@ -81,14 +106,20 @@ def create_chat_session(title="New Chat"):
     return session_id
 
 
+# -----------------------------
+# Update Chat Title
+# -----------------------------
+
 def update_chat_title(session_id, title):
     """Update the title of an existing chat session."""
 
-    current_time = datetime.now(timezone.utc).isoformat()
+    current_time = datetime.now(
+        timezone.utc
+    ).isoformat()
 
     with get_connection() as connection:
 
-        connection.execute(
+        cursor = connection.execute(
             """
             UPDATE chat_sessions
             SET title = ?, updated_at = ?
@@ -97,8 +128,12 @@ def update_chat_title(session_id, title):
             (title, current_time, session_id),
         )
 
-        connection.commit()
+        return cursor.rowcount > 0
 
+
+# -----------------------------
+# Get Chat Sessions
+# -----------------------------
 
 def get_chat_sessions():
     """Return all chat sessions, newest first."""
@@ -116,6 +151,10 @@ def get_chat_sessions():
     return [dict(row) for row in rows]
 
 
+# -----------------------------
+# Save Chat Message
+# -----------------------------
+
 def save_message(
     session_id,
     role,
@@ -125,7 +164,9 @@ def save_message(
 ):
     """Save a message to an existing chat session."""
 
-    current_time = datetime.now(timezone.utc).isoformat()
+    current_time = datetime.now(
+        timezone.utc
+    ).isoformat()
 
     with get_connection() as connection:
 
@@ -168,6 +209,10 @@ def save_message(
         )
 
 
+# -----------------------------
+# Get Chat Messages
+# -----------------------------
+
 def get_chat_messages(session_id):
     """Retrieve all messages from a chat session."""
 
@@ -188,21 +233,28 @@ def get_chat_messages(session_id):
     for row in rows:
 
         message = dict(row)
-        message["sources"] = json.loads(
-            message["sources"] or "[]"
-        )
+
+        try:
+            message["sources"] = json.loads(
+                message["sources"] or "[]"
+            )
+
+        except (json.JSONDecodeError, TypeError):
+            message["sources"] = []
 
         messages.append(message)
 
     return messages
 
 
+# -----------------------------
+# Delete Chat Session
+# -----------------------------
+
 def delete_chat_session(session_id):
-    """Delete a chat session and its messages."""
+    """Delete a chat session and its associated messages."""
 
     with get_connection() as connection:
-
-        connection.execute("PRAGMA foreign_keys = ON")
 
         cursor = connection.execute(
             """
@@ -212,10 +264,11 @@ def delete_chat_session(session_id):
             (session_id,),
         )
 
-        connection.commit()
-
         return cursor.rowcount > 0
 
 
-# Initialize database when this module is imported
+# -----------------------------
+# Initialize Database
+# -----------------------------
+
 initialize_database()
