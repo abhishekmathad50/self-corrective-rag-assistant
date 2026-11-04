@@ -11,3 +11,6 @@ __pycache__/
 chroma_db/
 data/chat_history.db
 *.log
+# Private keys and certificates
+*.pem
+*.key
