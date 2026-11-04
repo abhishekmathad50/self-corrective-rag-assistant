@@ -3,12 +3,23 @@ from app.retrieval import retrieve_documents
 
 
 def retrieval_node(state: GraphState) -> GraphState:
-    query = state["rewritten_query"]
+    """
+    Retrieve relevant document chunks using the original
+    or rewritten query and optional document selection.
+    """
+
+    # Use rewritten query when available
+    query = (
+        state.get("rewritten_query")
+        or state["question"]
+    )
+
+    # Get selected documents
     selected_documents = state.get("selected_documents", [])
 
+    # Retrieve relevant document chunks
     documents = retrieve_documents(
         query=query,
-        k=3,
         selected_documents=selected_documents or None,
     )
 
